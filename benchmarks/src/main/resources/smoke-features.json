@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "features": [
+    {
+      "name": "smoke.enabled",
+      "enabled": true,
+      "strategies": [{ "name": "default" }]
+    }
+  ]
+}
