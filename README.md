@@ -3,28 +3,32 @@
 ## Running
 
 ```sh
-./run-benchmarks.sh
+mise run install                       # clone the SDK into sdk/ (git-ignored) and build against main
+mise run bench                         # benchmark the SDK's main branch
+mise run bench --branch feat/new       # benchmark another SDK branch
 ```
 
-This installs the SDK from `../../Unleash/unleash-java-sdk` (override with `SDK_DIR=...`) into
-`~/.m2`, using whatever branch is checked out there, then builds and runs the JMH jar. Arguments
-are passed through to JMH, e.g. `./run-benchmarks.sh -rf json -rff results/my-branch.json`.
+`bench` fetches `sdk/`, checks out the branch (fast-forwarding it to `origin`), installs it into
+`~/.m2`, builds the JMH jar against that SDK version and runs it. Anything after `--` goes to JMH,
+e.g. `mise run bench --branch feat/new -- -rf json -rff results/feat-new.json`. Without mise, use
+`./run-benchmarks.sh [--branch <name>] [JMH args...]`.
 
-Every branch installs as the same SNAPSHOT version, so the last install wins. To compare
-branches, check each one out in the SDK, run the script, and save results to a separate file.
+`sdk/` is a normal git clone, so you can also commit or edit there; uncommitted changes are
+benchmarked as long as the checkout of `--branch` doesn't conflict with them.
 
-### With mise
-
-```sh
-cp mise.local.toml.example mise.local.toml   # set SDK_DIR etc. under [env]
-mise run bench                               # or: mise run bench -- -rf json -rff results/x.json
-```
+Every branch installs into `~/.m2` under its SNAPSHOT version, so the last install wins. To compare
+branches, run `bench` once per branch and save each result to its own file.
 
 `mise tasks` lists the other tasks (`sdk:install`, `build`).
 
-### Against a real Unleash instance
+## IsEnabledContentionBenchmark
 
-By default the benchmark loads toggles from the bundled `smoke-features.json`. Set `UNLEASH_URL`
-and `UNLEASH_API_KEY` (and optionally `UNLEASH_PROJECT`) to fetch them from a server instead. Either
-way, the toggle evaluated is `UNLEASH_FEATURE` (default `benchmark-feature-flag`), which must
-exist on the server or, when bootstrapping, in `smoke-features.json`.
+Reproduces arm A of the yggdrasil-engine contention report in `ygg-repro/ISSUE.md`, going through
+`DefaultUnleash.isEnabled` instead of calling the engine directly. One client is shared by 1, 8, 64
+and 200 threads (one fork each, 2 s warmup + 6 s measurement). Each op builds a context with a
+`userId` and evaluates `repro-toggle`, which is loaded from `repro-features.json` (the `default`
+strategy, always on).
+
+Each `isEnabled` allocates a direct `ByteBuffer` in `UnleashEngine.buildMessage`, which takes the
+JVM-global `Cleaner.add` monitor, so total throughput stays flat (~0.5–0.6 M ops/s) no matter how
+many threads you add. A fix should make the 8/64/200-thread results scale.

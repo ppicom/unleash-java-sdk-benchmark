@@ -1,14 +1,23 @@
 # Shared tasks. Put machine-specific environment variables in mise.local.toml (git-ignored),
 # see mise.local.toml.example.
 
+[tasks.install]
+description = "Clone the SDK into sdk/ (or fetch it if already there), then build main"
+run = [
+  '[ -d sdk/.git ] && git -C sdk fetch origin || git clone git@github.com:Unleash/unleash-java-sdk.git sdk',
+  'git -C sdk checkout -q main && git -C sdk pull -q --ff-only',
+  { task = "sdk:install" },
+  { task = "build" },
+]
+
 [tasks.bench]
-description = "Install the SDK, build and run the benchmarks (extra args go to JMH)"
+description = "Check out an SDK branch (--branch, default main), install it, build and run the benchmarks (other args go to JMH)"
 run = "./run-benchmarks.sh"
 
 [tasks."sdk:install"]
-description = "Install the SDK checkout at $SDK_DIR into ~/.m2"
-run = 'mvn -q -f "${SDK_DIR:-../../Unleash/unleash-java-sdk}/pom.xml" install -DskipTests'
+description = "Install whatever is checked out in sdk/ into ~/.m2"
+run = 'mvn -q -f sdk/pom.xml install -DskipTests'
 
 [tasks.build]
-description = "Build the benchmarks jar against the installed SDK"
-run = "mvn -q package"
+description = "Build the benchmarks jar against the SDK version checked out in sdk/"
+run = 'mvn -q package -Dunleash.version="$(mvn -q -f sdk/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)"'

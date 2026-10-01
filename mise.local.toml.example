@@ -1,5 +1,2 @@
 # Copy to mise.local.toml and adjust. Variables here are exported to `mise run` tasks.
 [env]
-# Path to the Unleash Java SDK checkout to benchmark (default: ../../Unleash/unleash-java-sdk)
-SDK_DIR = "../../Unleash/unleash-java-sdk"
-
