@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "features": [
+    {
+      "name": "repro-toggle",
+      "type": "release",
+      "enabled": true,
+      "project": "default",
+      "stale": false,
+      "impressionData": false,
+      "strategies": [{ "name": "default", "parameters": {} }],
+      "variants": []
+    }
+  ]
+}
