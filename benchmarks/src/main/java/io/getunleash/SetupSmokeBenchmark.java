@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.openjdk.jmh.annotations.Benchmark;
@@ -25,8 +24,8 @@ import org.openjdk.jmh.infra.Blackhole;
  * loaded with toggles, and that the JMH harness runs.
  *
  * <p>With UNLEASH_URL set, toggles are fetched from that server (using UNLEASH_API_KEY and,
- * optionally, UNLEASH_PROJECT) and the first one is evaluated. Otherwise they come from the
- * bundled smoke-features.json.
+ * optionally, UNLEASH_PROJECT). Otherwise they come from the bundled smoke-features.json. Either
+ * way, the toggle evaluated is UNLEASH_FEATURE (default: benchmark-feature-flag).
  */
 @State(Scope.Benchmark)
 @Fork(1)
@@ -34,7 +33,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
 public class SetupSmokeBenchmark {
 
-    private static final String BOOTSTRAP_FEATURE = "smoke.enabled";
+    private static final String DEFAULT_FEATURE = "benchmark-feature-flag";
 
     private Unleash unleash;
     private String feature;
@@ -42,6 +41,10 @@ public class SetupSmokeBenchmark {
     @Setup
     public void setup() {
         String url = System.getenv("UNLEASH_URL");
+        feature = System.getenv("UNLEASH_FEATURE");
+        if (feature == null || feature.isBlank()) {
+            feature = DEFAULT_FEATURE;
+        }
         UnleashConfig.Builder config =
                 UnleashConfig.builder()
                         .appName("benchmark-smoke")
@@ -60,10 +63,9 @@ public class SetupSmokeBenchmark {
                     .apiKey("irrelevant")
                     .toggleBootstrapProvider(classpathBootstrap("/smoke-features.json"));
             unleash = new DefaultUnleash(config.build());
-            feature = BOOTSTRAP_FEATURE;
             if (!unleash.isEnabled(feature)) {
                 throw new IllegalStateException(
-                        "Expected '" + feature + "' to be enabled; bootstrap toggles were not loaded");
+                        "Expected '" + feature + "' to be enabled in smoke-features.json");
             }
         } else {
             config.unleashAPI(url)
@@ -74,12 +76,10 @@ public class SetupSmokeBenchmark {
                 config.projectName(project);
             }
             unleash = new DefaultUnleash(config.build());
-            List<String> toggles = unleash.more().getFeatureToggleNames();
-            if (toggles.isEmpty()) {
+            if (!unleash.more().getFeatureToggleNames().contains(feature)) {
                 throw new IllegalStateException(
-                        "No toggles fetched from " + url + "; check the API key and project");
+                        "'" + feature + "' not fetched from " + url + "; check the API key and project");
             }
-            feature = toggles.get(0);
         }
         System.out.println("Benchmarking isEnabled(\"" + feature + "\")");
     }

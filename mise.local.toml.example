@@ -7,3 +7,6 @@ SDK_DIR = "../../Unleash/unleash-java-sdk"
 # UNLEASH_URL = "https://app.unleash-hosted.com/demo/api"
 # UNLEASH_API_KEY = "default:development.<token>"
 # UNLEASH_PROJECT = "default"
+
+# Optional: the toggle to evaluate (default: benchmark-feature-flag).
+# UNLEASH_FEATURE = "benchmark-feature-flag"

@@ -25,5 +25,6 @@ mise run bench                               # or: mise run bench -- -rf json -r
 ### Against a real Unleash instance
 
 By default the benchmark loads toggles from the bundled `smoke-features.json`. Set `UNLEASH_URL`
-and `UNLEASH_API_KEY` (and optionally `UNLEASH_PROJECT`) to fetch them from a server instead; the
-first fetched toggle is the one evaluated.
+and `UNLEASH_API_KEY` (and optionally `UNLEASH_PROJECT`) to fetch them from a server instead. Either
+way, the toggle evaluated is `UNLEASH_FEATURE` (default `benchmark-feature-flag`), which must
+exist on the server or, when bootstrapping, in `smoke-features.json`.
