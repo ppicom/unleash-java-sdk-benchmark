@@ -14,14 +14,24 @@ built from the same checkout.
 
 `bench` fetches `sdk/`, checks out the branch (fast-forwarding it to `origin`), installs it into
 `~/.m2`, builds the JMH jar against that SDK version and runs it. Anything after `--` goes to JMH,
-e.g. `mise run bench --branch feat/new -- -rf json -rff results/feat-new.json`. Without mise, use
-`./run-benchmarks.sh [--branch <name>] [JMH args...]`.
+e.g. `mise run bench --branch feat/new -- EngineIsEnabledContention`. Without mise, use
+`./run-benchmarks.sh [--branch <name>] [--bindings-branch <name>] [JMH args...]` (needs `jq`).
+
+Each run writes JMH's JSON results to `results/` (git-ignored), split by layer:
+
+- `results/sdk-bench-<branch>-<timestamp>.json`: `IsEnabledContentionBenchmark`
+- `results/engine-bench-<bindings-branch>-<timestamp>.json`: `EngineIsEnabledContentionBenchmark`
+
+`/` in branch names becomes `-` and `<timestamp>` is the run's start as `YYYYMMDD-HHMMSS`
+(`feat/new` → `sdk-bench-feat-new-20261002-143000.json`), so a run never overwrites earlier ones. A
+file is skipped if the run had no results for it, e.g. when filtering on one benchmark. To visualize them, open
+[jmh.morethan.io](https://jmh.morethan.io) and drop one file on it, or two to compare runs.
 
 `sdk/` is a normal git clone, so you can also commit or edit there; uncommitted changes are
 benchmarked as long as the checkout of `--branch` doesn't conflict with them.
 
 Every branch installs into `~/.m2` under its SNAPSHOT version, so the last install wins. To compare
-branches, run `bench` once per branch and save each result to its own file.
+branches, run `bench` once per branch; each run's results land in their own files.
 
 ### The engine
 

@@ -13,7 +13,7 @@ if [[ ! -d "$BINDINGS_DIR/.git" ]]; then
   exit 1
 fi
 
-cargo build -q --release --manifest-path "$BINDINGS_DIR/Cargo.toml"
+cargo build --release --manifest-path "$BINDINGS_DIR/Cargo.toml"
 
 # The engine jar only bundles binaries named the way its release workflow downloads them.
 case "$(uname -s)-$(uname -m)" in
@@ -29,5 +29,5 @@ cp "$BINDINGS_DIR/target/release/$SRC" "$ENGINE_DIR/binaries/$DEST"
 
 # javadoc is skipped: it only adds noise (warnings) and time to a local build.
 VERSION="$("$ROOT/bindings-version.sh")"
-(cd "$ENGINE_DIR" && ./gradlew -q publishToMavenLocal -x javadoc -Pversion="$VERSION")
+(cd "$ENGINE_DIR" && ./gradlew publishToMavenLocal -x javadoc -Pversion="$VERSION")
 echo "Installed yggdrasil-engine $VERSION"

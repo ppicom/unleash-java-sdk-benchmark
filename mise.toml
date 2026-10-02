@@ -1,6 +1,9 @@
 # Shared tasks. Put machine-specific environment variables in mise.local.toml (git-ignored),
 # see mise.local.toml.example.
 
+[tools]
+jq = "latest"
+
 [tasks.install]
 description = "Clone the SDK into sdk/ and the engine bindings into bindings/ (or fetch them if already there), then build main"
 run = [
