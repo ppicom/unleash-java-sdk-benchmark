@@ -3,10 +3,14 @@
 ## Running
 
 ```sh
-mise run install                       # clone the SDK into sdk/ (git-ignored) and build against main
-mise run bench                         # benchmark the SDK's main branch
+mise run install                       # clone the SDK into sdk/ and the bindings into bindings/ (both git-ignored), build against main
+mise run bench                         # benchmark the SDK's and the bindings' main branches
 mise run bench --branch feat/new       # benchmark another SDK branch
+mise run bench --bindings-branch fix/x # benchmark another bindings branch
 ```
+
+Building the bindings needs a Rust toolchain (`cargo`), since the engine's native library is
+built from the same checkout.
 
 `bench` fetches `sdk/`, checks out the branch (fast-forwarding it to `origin`), installs it into
 `~/.m2`, builds the JMH jar against that SDK version and runs it. Anything after `--` goes to JMH,
@@ -19,7 +23,21 @@ benchmarked as long as the checkout of `--branch` doesn't conflict with them.
 Every branch installs into `~/.m2` under its SNAPSHOT version, so the last install wins. To compare
 branches, run `bench` once per branch and save each result to its own file.
 
-`mise tasks` lists the other tasks (`sdk:install`, `build`).
+### The engine
+
+`bindings/` is a clone of [yggdrasil-bindings](https://github.com/Unleash/yggdrasil-bindings), and
+works the same way as `sdk/`. `mise run bindings:install` (`./install-bindings.sh`) builds whatever
+is checked out there: `cargo build --release`, then the Gradle project in `bindings/java-engine`
+with that native library bundled, published to `~/.m2` as `<version>-SNAPSHOT` (e.g.
+`1.0.3-SNAPSHOT`) so it never overwrites a released engine.
+
+`benchmarks/pom.xml` depends on that engine directly, which overrides the version the SDK pins, so
+**every** benchmark (SDK ones included) runs against the engine in `bindings/`.
+
+To try an engine change: edit `bindings/java-engine` (or the Rust code), then
+`mise run bindings:install && mise run build` and run `benchmarks/target/benchmarks.jar`.
+
+`mise tasks` lists the other tasks (`sdk:install`, `bindings:install`, `build`).
 
 ## IsEnabledContentionBenchmark
 
@@ -32,3 +50,10 @@ strategy, always on).
 Each `isEnabled` allocates a direct `ByteBuffer` in `UnleashEngine.buildMessage`, which takes the
 JVM-global `Cleaner.add` monitor, so total throughput stays flat (~0.5–0.6 M ops/s) no matter how
 many threads you add. A fix should make the 8/64/200-thread results scale.
+
+## EngineIsEnabledContentionBenchmark
+
+The same benchmark one layer down: `UnleashEngine.isEnabled` called directly on one shared engine,
+loaded with the same `repro-features.json`, like arm A of `ygg-repro/Repro.java`. Comparing it with
+`IsEnabledContentionBenchmark` shows how much of the cost is the engine versus the SDK. Run only it
+with `java -jar benchmarks/target/benchmarks.jar EngineIsEnabledContention`.

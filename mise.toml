@@ -2,22 +2,29 @@
 # see mise.local.toml.example.
 
 [tasks.install]
-description = "Clone the SDK into sdk/ (or fetch it if already there), then build main"
+description = "Clone the SDK into sdk/ and the engine bindings into bindings/ (or fetch them if already there), then build main"
 run = [
   '[ -d sdk/.git ] && git -C sdk fetch origin || git clone git@github.com:Unleash/unleash-java-sdk.git sdk',
   'git -C sdk checkout -q main && git -C sdk pull -q --ff-only',
+  '[ -d bindings/.git ] && git -C bindings fetch origin || git clone git@github.com:Unleash/yggdrasil-bindings.git bindings',
+  'git -C bindings checkout -q main && git -C bindings pull -q --ff-only',
   { task = "sdk:install" },
+  { task = "bindings:install" },
   { task = "build" },
 ]
 
 [tasks.bench]
-description = "Check out an SDK branch (--branch, default main), install it, build and run the benchmarks (other args go to JMH)"
+description = "Check out an SDK branch (--branch) and bindings branch (--bindings-branch), both default main, install them, build and run the benchmarks (other args go to JMH)"
 run = "./run-benchmarks.sh"
 
 [tasks."sdk:install"]
 description = "Install whatever is checked out in sdk/ into ~/.m2"
 run = 'mvn -q -f sdk/pom.xml install -DskipTests'
 
+[tasks."bindings:install"]
+description = "Build whatever is checked out in bindings/ (Rust + java-engine) and install the engine into ~/.m2"
+run = './install-bindings.sh'
+
 [tasks.build]
-description = "Build the benchmarks jar against the SDK version checked out in sdk/"
-run = 'mvn -q package -Dunleash.version="$(mvn -q -f sdk/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)"'
+description = "Build the benchmarks jar against the SDK in sdk/ and the engine in bindings/"
+run = 'mvn -q package -Dunleash.version="$(mvn -q -f sdk/pom.xml help:evaluate -Dexpression=project.version -DforceStdout)" -Dyggdrasil.version="$(./bindings-version.sh)"'
