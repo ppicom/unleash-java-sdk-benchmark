@@ -5,3 +5,6 @@ ygg-repro/
 sdk/
 bindings/
 results/
+
+# Local agentic files
+*.local.md
